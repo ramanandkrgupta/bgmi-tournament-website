@@ -1,0 +1,97 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String         @id @default(auto()) @map("_id") @db.ObjectId
+  name         String
+  email        String         @unique
+  password     String
+  balance      Float          @default(0)
+  bonusBalance Float          @default(0)
+  winnings     Float          @default(0)
+  referralCode String         @unique
+  referredBy   String?
+  matchHistory MatchHistory[]
+  teams        TeamMember[] // Changed to use the join model
+}
+
+model Team {
+  id             String           @id @default(auto()) @map("_id") @db.ObjectId
+  teamName       String
+  teamCode       String           @unique
+  players        TeamPlayer[] // Represents the team members
+  kills          Int              @default(0)
+  placePoints    Int              @default(0)
+  totalPoints    Int              @default(0)
+  teamMembers    TeamMember[] // Represents the members of this team
+  TournamentTeam TournamentTeam[]
+}
+
+model TeamMember {
+  id     String @id @default(auto()) @map("_id") @db.ObjectId
+  userId String @db.ObjectId
+  teamId String @db.ObjectId
+  user   User   @relation(fields: [userId], references: [id])
+  team   Team   @relation(fields: [teamId], references: [id])
+}
+
+model TeamPlayer {
+  id     String @id @default(auto()) @map("_id") @db.ObjectId
+  userId String @db.ObjectId
+  role   String @default("assaulter")
+  teamId String @db.ObjectId
+  team   Team   @relation(fields: [teamId], references: [id])
+}
+
+model Tournament {
+  id          String           @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  entryFee    Float
+  prize       Float
+  teams       TournamentTeam[] // Use a join model to relate teams to tournaments
+  createdBy   String           @db.ObjectId
+  status      String           @default("upcoming")
+  startDate   DateTime
+  endDate     DateTime
+  roomId      String
+  password    String
+  bannerImage String
+  map         String           @default("ERANGEL")
+  mode        String           @default("SQUAD")
+  perKill     Float
+  maxTeamJoin Int
+}
+
+model TournamentTeam {
+  id           String     @id @default(auto()) @map("_id") @db.ObjectId
+  tournament   Tournament @relation(fields: [tournamentId], references: [id])
+  tournamentId String     @db.ObjectId
+  team         Team       @relation(fields: [teamId], references: [id])
+  teamId       String     @db.ObjectId
+}
+
+model Transaction {
+  id      String  @id @default(auto()) @map("_id") @db.ObjectId
+  userId  String  @db.ObjectId
+  amount  Float
+  type    String  @default("deposit")
+  source  String  @default("balance")
+  matchId String? @db.ObjectId
+  status  String  @default("pending")
+}
+
+model MatchHistory {
+  id          String @id @default(auto()) @map("_id") @db.ObjectId
+  matchId     String @db.ObjectId
+  userId      String @db.ObjectId
+  result      String @default("pending")
+  kills       Int    @default(0)
+  placePoints Int    @default(0)
+  user        User   @relation(fields: [userId], references: [id])
+}
